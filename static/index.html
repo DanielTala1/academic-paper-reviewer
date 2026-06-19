@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Academic Paper Reviewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">📚</div>
+          <div>
+            <h1>Academic Paper Reviewer</h1>
+            <p class="subtitle">Thesis & capstone feedback powered by Gemini & Groq</p>
+          </div>
+        </div>
+        <div class="badge">Academic scope only</div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel panel-input">
+        <h2>Submit your paper</h2>
+        <p class="panel-desc">Upload a research paper and receive structured critique, revision suggestions, and advisor-style questions.</p>
+
+        <form id="review-form">
+          <div class="field">
+            <label for="ai-provider">AI provider</label>
+            <select id="ai-provider" name="ai_provider">
+              <option value="auto" selected>Auto — Gemini preferred (best for long papers)</option>
+              <option value="gemini">Gemini only</option>
+              <option value="groq">Groq only</option>
+            </select>
+            <p class="hint"><strong>Recommended:</strong> add a free Gemini key below. Auto uses Gemini when available, Groq as backup.</p>
+          </div>
+
+          <div class="field">
+            <label for="gemini-api-key">Gemini API Key <span class="optional">(recommended)</span></label>
+            <div class="input-row">
+              <input type="password" id="gemini-api-key" name="gemini_api_key" placeholder="AIza..." autocomplete="off" />
+              <button type="button" id="toggle-gemini-key" class="btn btn-ghost" aria-label="Show Gemini API key">Show</button>
+            </div>
+            <p class="hint">Free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> — handles longer theses than Groq free tier.</p>
+          </div>
+
+          <div class="field">
+            <label for="api-key">Groq API Key <span class="optional">(optional backup)</span></label>
+            <div class="input-row">
+              <input type="password" id="api-key" name="api_key" placeholder="gsk_..." autocomplete="off" />
+              <button type="button" id="toggle-key" class="btn btn-ghost" aria-label="Show Groq API key">Show</button>
+            </div>
+            <p class="hint">Stored locally in your browser. Get a key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a></p>
+          </div>
+
+          <div class="field">
+            <label for="paper-type">Paper type</label>
+            <select id="paper-type" name="paper_type">
+              <option value="Research Paper">Research Paper</option>
+              <option value="Thesis / Dissertation">Thesis / Dissertation</option>
+              <option value="Capstone Project">Capstone Project</option>
+              <option value="Literature Review">Literature Review</option>
+              <option value="Conference Paper">Conference Paper</option>
+              <option value="Lab Report">Lab Report</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="review-depth">Review depth</label>
+            <select id="review-depth" name="review_depth">
+              <option value="overview">Quick overview (best for long papers / free tier)</option>
+              <option value="detailed" selected>Detailed critique</option>
+              <option value="revision">Revision-focused</option>
+            </select>
+            <p class="hint">With Gemini: full papers usually work. With Groq free tier only: use Quick overview and one chapter at a time.</p>
+          </div>
+
+          <div class="field">
+            <label for="questioning-mode">Advisor questioning</label>
+            <select id="questioning-mode" name="questioning_mode">
+              <option value="light">Light — only when essential</option>
+              <option value="balanced" selected>Balanced — question weak or unclear points</option>
+              <option value="proactive">Proactive — challenge questionable claims (thesis-defense style)</option>
+            </select>
+            <p class="hint">Controls how often the professor asks probing questions during reviews and in chat.</p>
+          </div>
+
+          <div class="field">
+            <label for="focus-areas">Focus areas <span class="optional">(optional)</span></label>
+            <textarea id="focus-areas" name="focus_areas" rows="2" placeholder="e.g. methodology, thesis statement, citations"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="drive-link">Google Drive reference <span class="optional">(optional)</span></label>
+            <div class="input-row">
+              <input type="url" id="drive-link" name="reference_link" placeholder="https://drive.google.com/..." />
+              <button type="button" id="load-reference-btn" class="btn btn-secondary">Load</button>
+            </div>
+            <p class="hint">Optional. Leave empty to use only your uploaded paper and chat history. If provided, share as <strong>Anyone with the link can view</strong>.</p>
+            <div id="reference-status" class="reference-status hidden"></div>
+          </div>
+
+          <div class="field">
+            <label>Consultation journal <span class="optional">(optional)</span></label>
+            <p class="hint journal-hint">Upload notes from meetings with other professors — helps Professor Meridian align with their feedback.</p>
+            <div id="journal-drop-zone" class="drop-zone drop-zone-compact" tabindex="0" role="button" aria-label="Upload consultation journal">
+              <input type="file" id="journal-input" name="journal_file" accept=".pdf,.docx,.doc,.txt,.md" hidden />
+              <div class="drop-icon" aria-hidden="true">📓</div>
+              <p class="drop-title">Upload consultation journal</p>
+              <p class="drop-sub">PDF, DOCX, TXT, or MD — up to 50 MB</p>
+              <button type="button" id="journal-browse-btn" class="btn btn-secondary">Browse journal</button>
+            </div>
+            <div id="journal-info" class="file-info hidden"></div>
+          </div>
+
+          <div class="field">
+            <label>Document</label>
+            <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Upload document">
+              <input type="file" id="file-input" name="file" accept=".pdf,.docx,.doc,.txt,.md" hidden />
+              <div class="drop-icon" aria-hidden="true">📄</div>
+              <p class="drop-title">Drag & drop your paper here</p>
+              <p class="drop-sub">PDF, DOCX, TXT, or MD — up to 50 MB</p>
+              <button type="button" id="browse-btn" class="btn btn-secondary">Browse files</button>
+            </div>
+            <div id="file-info" class="file-info hidden"></div>
+          </div>
+
+          <div class="field">
+            <label>Research questionnaire <span class="optional">(optional)</span></label>
+            <p class="hint questionnaire-hint">Upload your survey instrument after the paper — Professor Meridian checks whether it supports your main argument.</p>
+            <label class="checkbox-row">
+              <input type="checkbox" id="critique-questionnaire" name="critique_questionnaire" disabled />
+              <span>Include detailed questionnaire critique</span>
+            </label>
+            <div id="questionnaire-drop-zone" class="drop-zone drop-zone-compact drop-zone-disabled" tabindex="-1" role="button" aria-label="Upload research questionnaire" aria-disabled="true">
+              <input type="file" id="questionnaire-input" name="questionnaire_file" accept=".pdf,.docx,.doc,.txt,.md" hidden disabled />
+              <div class="drop-icon" aria-hidden="true">📋</div>
+              <p class="drop-title">Upload questionnaire</p>
+              <p class="drop-sub">Upload your paper first · PDF, DOCX, TXT, or MD</p>
+              <button type="button" id="questionnaire-browse-btn" class="btn btn-secondary" disabled>Browse questionnaire</button>
+            </div>
+            <div id="questionnaire-info" class="file-info hidden"></div>
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn btn-primary" disabled>
+            <span class="btn-label">Review my paper</span>
+            <span class="btn-spinner hidden" aria-hidden="true"></span>
+          </button>
+        </form>
+      </section>
+
+      <section class="panel panel-output">
+        <div class="output-header">
+          <h2>Professor's feedback</h2>
+          <div id="meta-info" class="meta-info hidden"></div>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon" aria-hidden="true">🎓</div>
+          <p>Your review will appear here.</p>
+          <p class="empty-sub">Feedback covers structure, argument, methodology, writing style, citations, and concrete revision steps.</p>
+        </div>
+
+        <div id="loading-state" class="loading-state hidden">
+          <div class="loading-spinner"></div>
+          <p>Reading your paper and preparing feedback…</p>
+          <p class="loading-sub">This usually takes 15–45 seconds.</p>
+        </div>
+
+        <article id="review-content" class="review-content hidden"></article>
+      </section>
+
+      <section class="panel panel-chat">
+        <div class="chat-header">
+          <div>
+            <h2>Talk with Professor Meridian</h2>
+            <p class="panel-desc">Ask questions about your paper, revisions, or academic writing — before or after your review.</p>
+          </div>
+          <button type="button" id="clear-chat-btn" class="btn btn-ghost btn-sm" title="Clear conversation">Clear</button>
+        </div>
+
+        <div id="chat-context-badge" class="chat-context-badge hidden"></div>
+        <div id="chat-reference-badge" class="chat-context-badge chat-reference-badge hidden"></div>
+        <div id="chat-journal-badge" class="chat-context-badge chat-journal-badge hidden"></div>
+        <div id="chat-questionnaire-badge" class="chat-context-badge chat-questionnaire-badge hidden"></div>
+
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-welcome">
+            <div class="chat-welcome-icon" aria-hidden="true">💬</div>
+            <p><strong>Office hours are open.</strong></p>
+            <p class="chat-welcome-sub">Ask about thesis structure, methodology, citations, or how to revise a section. After you upload a paper, I can reference your review and document. Use <strong>Advisor questioning</strong> on the left to control how much the professor challenges you.</p>
+            <div class="chat-suggestions">
+              <button type="button" class="chat-suggestion" data-prompt="How do I write a strong thesis statement?">Strong thesis statement</button>
+              <button type="button" class="chat-suggestion" data-prompt="What's the difference between a literature review and a background section?">Lit review vs background</button>
+              <button type="button" class="chat-suggestion" data-prompt="How should I structure my methodology section?">Methodology structure</button>
+            </div>
+          </div>
+        </div>
+
+        <form id="chat-form" class="chat-form">
+          <textarea
+            id="chat-input"
+            rows="2"
+            placeholder="Ask your professor anything about academic writing…"
+            aria-label="Chat message"
+          ></textarea>
+          <button type="submit" id="chat-send-btn" class="btn btn-primary btn-send" aria-label="Send message">
+            <span class="btn-label">Send</span>
+            <span class="btn-spinner hidden" aria-hidden="true"></span>
+          </button>
+        </form>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Runs locally on your machine. Papers are sent to Groq for analysis — review their privacy policy before uploading sensitive work.</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
