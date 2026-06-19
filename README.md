@@ -46,20 +46,48 @@ markdown, httpx  # rendering + HTTP requests
 
 ## Installation
 
-### 1. Clone the repository
+### 1. Download the project
+
+**Easiest way (no Git needed):**
+
+1. Go to **[the repository page](https://github.com/DanielTala1/academic-paper-reviewer)**.
+2. Click the green **`< > Code`** button → **Download ZIP**.
+3. **Unzip** the downloaded file to a folder you can find easily (e.g. your Desktop).
+
+**Or, if you have Git installed:**
 
 ```bash
 git clone https://github.com/DanielTala1/academic-paper-reviewer.git
-cd academic-paper-reviewer
 ```
 
-### 2. Install dependencies
+### 2. Open a console (terminal) in the project folder
+
+A "console" (also called a terminal or command prompt) is where you type the commands in the next steps. Open it **inside the unzipped project folder**:
+
+**Windows:**
+
+1. Open the project folder in **File Explorer**.
+2. Click the **address bar** at the top (the box showing the folder path).
+3. Type `cmd` and press **Enter** — a black console window opens already pointing at the folder.
+
+> Alternative: hold **Shift**, right-click an empty area inside the folder, and choose **"Open PowerShell window here"** or **"Open in Terminal"**.
+
+**macOS:**
+
+1. Open the project folder in **Finder**.
+2. Right-click the folder → **Services** → **New Terminal at Folder**.
+
+> If you don't see that option, open **Terminal** from Applications → Utilities, type `cd ` (with a space), drag the folder into the window, and press **Enter**.
+
+> **Tip:** To check you're in the right place, the console should show the project folder name (e.g. `academic-paper-reviewer`) in its path.
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Get your API keys (free)
+### 4. Get your API keys (free)
 
 | Provider | Get a key | Best for |
 |----------|-----------|----------|
@@ -82,7 +110,7 @@ GROQ_API_KEY=gsk_...
 
 > The `.env` file is git-ignored, so your keys never get committed.
 
-### 4. Run the server
+### 5. Run the server
 
 **Windows:** double-click `start.bat`, **or** run any platform:
 
