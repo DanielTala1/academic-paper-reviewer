@@ -53,29 +53,13 @@ git clone https://github.com/DanielTala1/academic-paper-reviewer.git
 cd academic-paper-reviewer
 ```
 
-### 2. (Recommended) Create a virtual environment
-
-**Windows (PowerShell):**
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-**macOS / Linux:**
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Get your API keys (free)
+### 3. Get your API keys (free)
 
 | Provider | Get a key | Best for |
 |----------|-----------|----------|
@@ -98,7 +82,7 @@ GROQ_API_KEY=gsk_...
 
 > The `.env` file is git-ignored, so your keys never get committed.
 
-### 5. Run the server
+### 4. Run the server
 
 **Windows:** double-click `start.bat`, **or** run any platform:
 
