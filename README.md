@@ -153,13 +153,20 @@ Then open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 **For thesis/capstone work, Gemini is the better choice** because Groq's free tier caps each request at roughly 12,000 tokens (~4–8 pages), while Gemini handles much longer documents on its free tier.
 
-### Groq-only troubleshooting
+### "Rate limit reached" — what to do
 
-If you use **Groq only** and hit token-limit errors:
+Free tiers limit how much text you can send per minute and per day. This app already helps in two ways automatically:
 
-1. Switch to **Gemini** (recommended), or
-2. Use **Quick overview** and review one chapter at a time, or
-3. Upgrade to the [Groq Dev tier](https://console.groq.com/settings/billing) and set `GROQ_TIER=dev` in `.env`.
+- **Automatic text compression** — before sending, the app strips token-wasting noise from your document (repeated page headers/footers, page numbers, hyphenated line breaks, and extra whitespace). For long theses this can cut the size sent to the AI by 10–30%, so big papers are far less likely to hit the limit.
+- **Automatic retry** — if a brief per-minute rate limit is hit, the app waits a few seconds and retries on its own.
+
+If you still see the message:
+
+1. **Wait about a minute** and try again (per-minute limits reset quickly).
+2. Use **Quick overview** depth, or review **one chapter at a time** instead of the whole thesis at once.
+3. Make sure you're on **Gemini** (Auto mode uses it first) — it allows much larger documents than Groq's free tier.
+4. Add a **Groq** key as well so Auto mode can fall back to it when Gemini is busy.
+5. If you use **Groq only**, upgrade to the [Groq Dev tier](https://console.groq.com/settings/billing) and set `GROQ_TIER=dev` in `.env`.
 
 ---
 
@@ -173,6 +180,8 @@ Advanced settings can be tuned via environment variables in `.env`:
 | `GEMINI_REVIEW_MODEL` | `gemini-2.0-flash` | Gemini model name |
 | `GROQ_REVIEW_MODEL` | `llama-3.3-70b-versatile` | Groq model name |
 | `GROQ_TIER` | `free` | Set to `dev`/`paid` to unlock larger limits |
+| `RATE_LIMIT_RETRIES` | `2` | How many times to auto-retry after a rate-limit error |
+| `RATE_LIMIT_BACKOFF_SECONDS` | `6` | Initial wait before retrying (doubles each attempt) |
 
 ---
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 
 from fastapi import HTTPException
@@ -17,6 +18,34 @@ GEMINI_REVIEW_MODEL = os.getenv("GEMINI_REVIEW_MODEL", "gemini-2.0-flash")
 
 GROQ_TIER = os.getenv("GROQ_TIER", "free").strip().lower()
 GROQ_IS_FREE = GROQ_TIER not in {"dev", "paid", "pro"}
+
+RATE_LIMIT_RETRIES = int(os.getenv("RATE_LIMIT_RETRIES", "2"))
+RATE_LIMIT_BACKOFF_SECONDS = float(os.getenv("RATE_LIMIT_BACKOFF_SECONDS", "6"))
+
+
+def _is_rate_limit_error(message: str) -> bool:
+    lowered = message.lower()
+    return (
+        "429" in message
+        or "resource_exhausted" in lowered
+        or "rate_limit" in lowered
+        or "rate limit" in lowered
+        or "too many requests" in lowered
+    )
+
+
+def _retry_on_rate_limit(fn):
+    """Run fn, retrying briefly on transient rate-limit errors (per-minute bursts)."""
+    delay = RATE_LIMIT_BACKOFF_SECONDS
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            return fn()
+        except Exception as exc:  # noqa: BLE001 - re-raised after retries
+            if attempt < RATE_LIMIT_RETRIES and _is_rate_limit_error(str(exc)):
+                time.sleep(delay)
+                delay *= 2
+                continue
+            raise
 
 
 @dataclass(frozen=True)
@@ -80,15 +109,29 @@ class LLMProviderError(Exception):
         self.fallback_provider = fallback_provider
 
 
+_PLACEHOLDER_MARKERS = ("your_", "api_key_here", "changeme", "replace_me", "<", "xxxx")
+
+
+def _real_key(value: str | None) -> str:
+    """Return a usable API key, or '' for empty/placeholder values."""
+    key = (value or "").strip()
+    if not key:
+        return ""
+    lowered = key.lower()
+    if any(marker in lowered for marker in _PLACEHOLDER_MARKERS):
+        return ""
+    return key
+
+
 def has_groq_key(groq_key: str | None) -> bool:
-    return bool((groq_key or "").strip() or os.getenv("GROQ_API_KEY", "").strip())
+    return bool(_real_key(groq_key) or _real_key(os.getenv("GROQ_API_KEY")))
 
 
 def has_gemini_key(gemini_key: str | None) -> bool:
     return bool(
-        (gemini_key or "").strip()
-        or os.getenv("GEMINI_API_KEY", "").strip()
-        or os.getenv("GOOGLE_API_KEY", "").strip()
+        _real_key(gemini_key)
+        or _real_key(os.getenv("GEMINI_API_KEY"))
+        or _real_key(os.getenv("GOOGLE_API_KEY"))
     )
 
 
@@ -243,7 +286,7 @@ def trim_context_text(text: str, max_chars: int) -> str:
 
 
 def _groq_key(groq_key: str) -> str:
-    key = (groq_key or "").strip() or os.getenv("GROQ_API_KEY", "").strip()
+    key = _real_key(groq_key) or _real_key(os.getenv("GROQ_API_KEY"))
     if not key:
         raise LLMProviderError("Groq API key is missing.", status_code=400)
     return key
@@ -251,9 +294,9 @@ def _groq_key(groq_key: str) -> str:
 
 def _gemini_key(gemini_key: str) -> str:
     key = (
-        (gemini_key or "").strip()
-        or os.getenv("GEMINI_API_KEY", "").strip()
-        or os.getenv("GOOGLE_API_KEY", "").strip()
+        _real_key(gemini_key)
+        or _real_key(os.getenv("GEMINI_API_KEY"))
+        or _real_key(os.getenv("GOOGLE_API_KEY"))
     )
     if not key:
         raise LLMProviderError(
@@ -304,14 +347,16 @@ def complete_review(
     if provider == "gemini":
         try:
             client = genai.Client(api_key=_gemini_key(gemini_key))
-            response = client.models.generate_content(
-                model=GEMINI_REVIEW_MODEL,
-                contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=0.4,
-                    max_output_tokens=limits.review_max_tokens,
-                ),
+            response = _retry_on_rate_limit(
+                lambda: client.models.generate_content(
+                    model=GEMINI_REVIEW_MODEL,
+                    contents=user_prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.4,
+                        max_output_tokens=limits.review_max_tokens,
+                    ),
+                )
             )
             text = (response.text or "").strip()
             if not text:
@@ -324,14 +369,16 @@ def complete_review(
 
     try:
         client = Groq(api_key=_groq_key(groq_key))
-        completion = client.chat.completions.create(
-            model=GROQ_REVIEW_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.4,
-            max_tokens=limits.review_max_tokens,
+        completion = _retry_on_rate_limit(
+            lambda: client.chat.completions.create(
+                model=GROQ_REVIEW_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.4,
+                max_tokens=limits.review_max_tokens,
+            )
         )
         return completion.choices[0].message.content or "", GROQ_REVIEW_MODEL
     except LLMProviderError:
@@ -374,14 +421,16 @@ def complete_chat(
                 contents.append(types.Content(role=role, parts=[types.Part(text=item["content"])]))
             contents.append(types.Content(role="user", parts=[types.Part(text=message.strip())]))
 
-            response = client.models.generate_content(
-                model=GEMINI_REVIEW_MODEL,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=0.5,
-                    max_output_tokens=limits.chat_max_tokens,
-                ),
+            response = _retry_on_rate_limit(
+                lambda: client.models.generate_content(
+                    model=GEMINI_REVIEW_MODEL,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.5,
+                        max_output_tokens=limits.chat_max_tokens,
+                    ),
+                )
             )
             text = (response.text or "").strip()
             if not text:
@@ -402,11 +451,13 @@ def complete_chat(
 
     try:
         client = Groq(api_key=_groq_key(groq_key))
-        completion = client.chat.completions.create(
-            model=GROQ_REVIEW_MODEL,
-            messages=messages,
-            temperature=0.5,
-            max_tokens=limits.chat_max_tokens,
+        completion = _retry_on_rate_limit(
+            lambda: client.chat.completions.create(
+                model=GROQ_REVIEW_MODEL,
+                messages=messages,
+                temperature=0.5,
+                max_tokens=limits.chat_max_tokens,
+            )
         )
         return completion.choices[0].message.content or "", GROQ_REVIEW_MODEL
     except LLMProviderError:
@@ -451,7 +502,11 @@ def run_with_fallback(
             return text, model, provider
         except LLMProviderError as exc:
             last_error = exc
-            if exc.fallback_provider and idx + 1 < len(providers_to_try):
+            # In Auto mode, if another provider is still available, try it on
+            # ANY failure (invalid key, quota, server error) — not just rate
+            # limits. This lets a valid Groq key work even when the preferred
+            # Gemini key is missing, a placeholder, or invalid.
+            if idx + 1 < len(providers_to_try):
                 continue
             raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 

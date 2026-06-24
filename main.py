@@ -6,6 +6,7 @@ import io
 import json
 import os
 import re
+from collections import Counter
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -290,7 +291,7 @@ def fetch_reference_text(link: str) -> tuple[str, str | None]:
     except HTTPException as exc:
         return "", str(exc.detail)
 
-    text = re.sub(r"\n{3,}", "\n\n", text.strip())
+    text = compress_text(text)
     if not text:
         return "", "That Google Drive file appears to be empty or has no readable text."
     return text, None
@@ -412,6 +413,45 @@ def extract_optional_upload(filename: str, data: bytes, label: str) -> str:
     return extract_text(filename, data)
 
 
+_PAGE_NUMBER_RE = re.compile(r"^\s*(?:page\s+)?[-–—]?\s*\d{1,4}\s*(?:of\s+\d{1,4})?\s*[-–—]?\s*$", re.IGNORECASE)
+
+
+def compress_text(text: str) -> str:
+    """Reduce token footprint of extracted text without losing meaning.
+
+    Removes PDF layout noise that wastes tokens (and triggers rate limits):
+    repeated running headers/footers, standalone page numbers, hyphenated
+    line breaks, and excess whitespace.
+    """
+    if not text:
+        return ""
+
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)  # rejoin hyphenated line breaks
+
+    lines = text.split("\n")
+    stripped = [line.strip() for line in lines]
+
+    counts = Counter(line for line in stripped if line)
+    cleaned: list[str] = []
+    for line in stripped:
+        if not line:
+            cleaned.append("")
+            continue
+        if _PAGE_NUMBER_RE.match(line):
+            continue
+        # Exact-duplicate short lines repeated across many pages are almost
+        # always running headers/footers (e.g. the paper title or author name).
+        if len(line) <= 200 and counts[line] >= 5:
+            continue
+        cleaned.append(line)
+
+    text = "\n".join(cleaned)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def extract_text_from_pdf(data: bytes) -> str:
     reader = PdfReader(io.BytesIO(data))
     parts: list[str] = []
@@ -447,7 +487,7 @@ def extract_text(filename: str, data: bytes) -> str:
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
 
-    text = re.sub(r"\n{3,}", "\n\n", text.strip())
+    text = compress_text(text)
     if not text:
         raise HTTPException(
             status_code=400,
