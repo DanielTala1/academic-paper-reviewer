@@ -83,9 +83,30 @@ A "console" (also called a terminal or command prompt) is where you type the com
 
 ### 3. Install dependencies
 
+**Windows:**
+
 ```bash
 pip install -r requirements.txt
 ```
+
+**macOS / Linux** (use `python3`):
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+> **macOS: seeing an `error: externally-managed-environment` message?**
+> Recent macOS Python versions block installing packages system-wide. You have two easy options:
+> - **Simplest:** skip this step and just use the one-click launcher in Step 5 (`start.command`) — it sets up an isolated environment automatically.
+> - **Manual:** create a virtual environment first, then install:
+>   ```bash
+>   python3 -m venv .venv
+>   source .venv/bin/activate
+>   python3 -m pip install -r requirements.txt
+>   ```
+>   Keep this Terminal window open and use it for Step 5 as well.
+>
+> If `python3` is "command not found", install Python 3 from [python.org/downloads](https://www.python.org/downloads/) and try again.
 
 ### 4. Get your API keys (free)
 
@@ -112,11 +133,23 @@ GROQ_API_KEY=gsk_...
 
 ### 5. Run the server
 
-**Windows:** double-click `start.bat`, **or** run any platform:
+**Windows:** double-click `start.bat`.
+
+**macOS:** double-click `start.command`. It installs everything and opens the app for you — you can even skip Step 3.
+
+> The first time, macOS may say the file is *"from an unidentified developer"* or *"cannot be opened"*. Fix it once: **right-click `start.command` → Open → Open**. (Alternatively, run `bash start.command` from Terminal.)
+
+**Any platform (manual):**
 
 ```bash
+# Windows
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
+
+# macOS / Linux
+python3 -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+> On macOS, prefer `python3 -m uvicorn` — a bare `uvicorn` command often isn't on the PATH and gives "command not found". If you used a virtual environment in Step 3, make sure it's still activated (`source .venv/bin/activate`).
 
 Then open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
@@ -203,6 +236,7 @@ Advanced settings can be tuned via environment variables in `.env`:
 ├── llm_providers.py   # Gemini + Groq clients, limits, auto-fallback logic
 ├── requirements.txt   # Python dependencies
 ├── start.bat          # Windows one-click launcher
+├── start.command      # macOS / Linux one-click launcher
 ├── .env.example       # Template for API keys / config
 └── static/            # Front-end (index.html, app.js, styles.css)
 ```
