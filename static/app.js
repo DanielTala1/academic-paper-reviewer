@@ -638,6 +638,7 @@ async function sendChatMessage(text) {
   formData.append("previous_review", lastReview);
   formData.append("paper_excerpt", lastPaperExcerpt);
   formData.append("filename", lastFilename);
+  formData.append("paper_type", document.getElementById("paper-type").value);
   formData.append("questioning_mode", getQuestioningMode());
   formData.append("reference_link", lastReferenceLink || getReferenceLink());
   formData.append("reference_excerpt", lastReferenceExcerpt);

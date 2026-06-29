@@ -156,15 +156,17 @@ def resolve_provider(preference: str, groq_key: str, gemini_key: str) -> str:
             )
         return "groq"
 
-    # Auto: Gemini first — larger free context, better for full theses.
-    if gemini_ok:
-        return "gemini"
+    # Auto: Groq first — fast and reliable for most papers, and content is sized
+    # to its limits so it works on the free tier. Gemini is used as a fallback
+    # (and is better for very long theses that exceed Groq's free tier).
     if groq_ok:
         return "groq"
+    if gemini_ok:
+        return "gemini"
 
     raise HTTPException(
         status_code=400,
-        detail="Enter a Gemini or Groq API key. Gemini is recommended for long papers (free at aistudio.google.com/apikey).",
+        detail="Enter a Groq or Gemini API key. Add a Gemini key too for very long papers (free at aistudio.google.com/apikey).",
     )
 
 

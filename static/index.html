@@ -33,11 +33,11 @@
           <div class="field">
             <label for="ai-provider">AI provider</label>
             <select id="ai-provider" name="ai_provider">
-              <option value="auto" selected>Auto — Gemini preferred (best for long papers)</option>
+              <option value="auto" selected>Auto — Groq first, Gemini fallback</option>
               <option value="gemini">Gemini only</option>
               <option value="groq">Groq only</option>
             </select>
-            <p class="hint"><strong>Recommended:</strong> add a free Gemini key below. Auto uses Gemini when available, Groq as backup.</p>
+            <p class="hint"><strong>Auto</strong> uses Groq first, then falls back to Gemini (better for very long theses). Add a Gemini key too for long papers.</p>
           </div>
 
           <div class="field">

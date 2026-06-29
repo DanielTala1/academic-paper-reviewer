@@ -235,10 +235,17 @@ def get_template_block(provider: str) -> str:
     )
 
 
-def get_base_system_prompt(provider: str) -> str:
+def should_include_template(paper_type: str) -> bool:
+    """The institutional thesis/capstone template does not apply to feasibility studies."""
+    return "feasibility" not in (paper_type or "").strip().lower()
+
+
+def get_base_system_prompt(provider: str, include_template: bool = True) -> str:
     limits = get_limits(provider)
     base = COMPACT_SYSTEM_PROMPT if limits.use_compact_prompt else SYSTEM_PROMPT
-    return base + get_template_block(provider)
+    if include_template:
+        base += get_template_block(provider)
+    return base
 
 
 def get_review_system_prompt(
@@ -246,8 +253,13 @@ def get_review_system_prompt(
     questioning_mode: str,
     critique_questionnaire: bool = False,
     include_questionnaire: bool = False,
+    paper_type: str = "",
 ) -> str:
-    prompt = get_base_system_prompt(provider) + "\n\n" + get_questioning_prompt(questioning_mode, "review")
+    prompt = (
+        get_base_system_prompt(provider, include_template=should_include_template(paper_type))
+        + "\n\n"
+        + get_questioning_prompt(questioning_mode, "review")
+    )
     if critique_questionnaire:
         prompt += "\n\n" + QUESTIONNAIRE_CRITIQUE_PROMPT
     elif include_questionnaire:
@@ -766,6 +778,7 @@ async def review_paper(
         questioning_mode,
         critique_questionnaire=critique_q,
         include_questionnaire=has_questionnaire,
+        paper_type=paper_type,
     )
     (
         paper_for_review,
@@ -943,9 +956,9 @@ def build_chat_context(
     return "Context for this conversation:\n\n" + "\n\n".join(parts)
 
 
-def get_chat_system_prompt(provider: str, questioning_mode: str) -> str:
+def get_chat_system_prompt(provider: str, questioning_mode: str, paper_type: str = "") -> str:
     return (
-        get_base_system_prompt(provider)
+        get_base_system_prompt(provider, include_template=should_include_template(paper_type))
         + "\n\n"
         + CHAT_CONTEXT_PROMPT
         + "\n\n"
@@ -964,6 +977,7 @@ async def chat(
     previous_review: str = Form(default=""),
     paper_excerpt: str = Form(default=""),
     filename: str = Form(default=""),
+    paper_type: str = Form(default=""),
     questioning_mode: str = Form(default="balanced"),
     reference_link: str = Form(default=""),
     reference_excerpt: str = Form(default=""),
@@ -993,7 +1007,7 @@ async def chat(
         questionnaire_filename=questionnaire_filename,
         questionnaire_critique=parse_form_bool(questionnaire_critique),
     )
-    chat_system = get_chat_system_prompt(provider, questioning_mode)
+    chat_system = get_chat_system_prompt(provider, questioning_mode, paper_type=paper_type)
 
     response, model_name, provider_used = run_with_fallback(
         ai_provider,
@@ -1017,6 +1031,7 @@ async def follow_up(
     question: str = Form(...),
     paper_excerpt: str = Form(default=""),
     previous_review: str = Form(default=""),
+    paper_type: str = Form(default=""),
     questioning_mode: str = Form(default="balanced"),
     reference_link: str = Form(default=""),
     reference_excerpt: str = Form(default=""),
@@ -1045,7 +1060,7 @@ async def follow_up(
         questionnaire_filename=questionnaire_filename,
         questionnaire_critique=parse_form_bool(questionnaire_critique),
     )
-    chat_system = get_chat_system_prompt(provider, questioning_mode)
+    chat_system = get_chat_system_prompt(provider, questioning_mode, paper_type=paper_type)
 
     response, model_name, provider_used = run_with_fallback(
         ai_provider,

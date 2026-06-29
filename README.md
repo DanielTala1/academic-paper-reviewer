@@ -9,7 +9,7 @@ Upload a paper, get a section-by-section review, then keep chatting with "Profes
 ## Features
 
 - Upload **PDF, DOCX, TXT, or Markdown** files (up to 50 MB)
-- **Gemini + Groq** support with an **Auto** mode (Gemini preferred for long papers, Groq as fast fallback)
+- **Gemini + Groq** support with an **Auto** mode (Groq first for speed, Gemini as fallback for very long papers)
 - Structured feedback: overall assessment, strengths, areas for improvement, numbered revisions, citations, and advisor questions
 - **Talk with Professor Meridian** — chat that keeps your paper and review in context
 - Adjustable **review depth** (overview / detailed / revision-focused) and **questioning mode** (light / balanced / proactive Socratic)
@@ -124,7 +124,7 @@ Then open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ## How to Use
 
-1. **Choose an AI provider** — leave it on **Auto** (default) to use Gemini first with Groq as a fallback.
+1. **Choose an AI provider** — leave it on **Auto** (default) to use Groq first with Gemini as a fallback for very long papers.
 2. **Enter your API key(s)** in the UI (skip this if you set them in `.env`).
 3. **Upload your document** (PDF, DOCX, TXT, or MD).
 4. **Pick your options:**
@@ -149,9 +149,9 @@ Then open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 | **Free tier** | Yes — no credit card | Yes |
 | **Long papers / theses** | ✅ ~120k characters | ❌ ~8k characters on free tier |
 | **Speed** | Good | Very fast |
-| **Auto mode in this app** | **Used first** | Fallback if Gemini fails |
+| **Auto mode in this app** | Fallback if Groq fails | **Used first** |
 
-**For thesis/capstone work, Gemini is the better choice** because Groq's free tier caps each request at roughly 12,000 tokens (~4–8 pages), while Gemini handles much longer documents on its free tier.
+**Auto mode uses Groq first** (fast, and content is sized to fit its free-tier limits), then falls back to Gemini. **For very long theses, add a Gemini key** — Groq's free tier caps each request at roughly 12,000 tokens (~4–8 pages), while Gemini handles much longer documents, so Auto will fall back to it when a paper is too big for Groq.
 
 ### "Rate limit reached" — what to do
 
@@ -164,8 +164,8 @@ If you still see the message:
 
 1. **Wait about a minute** and try again (per-minute limits reset quickly).
 2. Use **Quick overview** depth, or review **one chapter at a time** instead of the whole thesis at once.
-3. Make sure you're on **Gemini** (Auto mode uses it first) — it allows much larger documents than Groq's free tier.
-4. Add a **Groq** key as well so Auto mode can fall back to it when Gemini is busy.
+3. Add a **Gemini** key as well — Auto mode falls back to it for documents too large for Groq's free tier.
+4. For very long theses, select **Gemini only**, which allows much larger documents than Groq's free tier.
 5. If you use **Groq only**, upgrade to the [Groq Dev tier](https://console.groq.com/settings/billing) and set `GROQ_TIER=dev` in `.env`.
 
 ---
