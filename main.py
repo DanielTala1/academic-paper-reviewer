@@ -138,6 +138,76 @@ QUESTIONING_INSTRUCTIONS: dict[str, dict[str, str]] = {
 }
 
 
+THESIS_TEMPLATE = """PROPOSED TECH THESIS/CAPSTONE TEMPLATE / FORMAT 2025–2026
+
+THESIS 1 / CAPSTONE 1 — Structure:
+Chapter 1: Introduction
+  A. Project Rationale
+     a. Research Context
+        i. Review of Related Literature
+        ii. Research Methods and Findings
+     b. Statement of the Problem
+  B. Project Narrative
+     a. Description and Objectives
+     b. Scope and Limitations
+     c. SWOT Analysis
+     d. Project Testing and Evaluation
+        i. Respondents
+        ii. Instrument
+        iii. Analysis (Thematic / Statistical)
+Chapter 2: Review of Related Works
+Chapter 3: Design Methodology
+  A. Conceptual Framework
+  B. Project Timeline
+  C. System Scope / (For EMC) High Concept Game Design Document
+  D. Requirements Specification / (For EMC) Prototype Overview
+Bibliography
+Appendices
+Focus: determine the topic/focus of the output; establish the problem/need and its context through literature review and preliminary data gathering (interview, survey, focus group discussion, observation); conceptualize the project that addresses the problem; determine objectives; identify scope and limitations; conduct SWOT analysis; establish how the project will be evaluated against objectives; review existing related technologies/systems/games/applications; plan the design methodology.
+
+THESIS 2 / CAPSTONE 2 — Structure:
+Chapter 3: Design Methodology (cont.) — A. Conceptual Framework, B. Project Timeline, C. System Scope, D. Requirements Specification
+Chapter 4: Results and Interpretations
+Chapter 5: Conclusions and Next Steps
+Bibliography (updated)
+Appendices (updated)
+Focus: implement the full design methodology; conduct prototype testing; collect and report findings and feedback; draw conclusions and determine next steps.
+
+SECTION DESCRIPTIONS:
+- Chapter 1 Introduction: preliminaries to project development and implementation.
+  - A. Project Rationale: justification for the project; presents preliminary research on the topic and zeroes in on the actual problem/issue to be addressed.
+    - a. Research Context: establishes that a problem exists that technology can address (made of Review of Related Literature + Research Methods and Findings).
+      - i. Review of Related Literature: cite varied sources (news/web articles, studies, government documents) for historical/social/cultural context; ideally written thematically.
+      - ii. Research Methods and Findings: preliminary data gathering (expert interviews, immersion, etc.) to deepen understanding and identify technology's role; report key findings.
+    - b. Statement of the Problem: the problem/issue/gap to be addressed; stems from the research context.
+  - B. Project Narrative: explains the proposed project in light of the identified problem.
+    - a. Description and Objectives: describes the project and its specific objectives; objectives must align with the Statement of the Problem and are the basis for testing/evaluation.
+    - b. Scope and Limitations: the extent to which the project addresses the problem and meets the objectives.
+    - c. SWOT Analysis: strengths, weaknesses, opportunities, threats; also identifies marketability / unique selling proposition.
+    - d. Project Testing and Evaluation: how the project is tested/evaluated, based on the objectives.
+      - i. Respondents: from primary stakeholders / target audience; generally at least 30 respondents for prototype testing and feedback.
+      - ii. Instrument: type and content aligned with the objectives (survey questionnaire, test, checklist, etc.).
+      - iii. Analysis: thematic analysis for qualitative data (interviews, FGDs); statistical analysis for quantitative data (closed-ended surveys, tests).
+- Chapter 2 Review of Related Works: related works/technologies that address the same/similar topic OR have features to include; proponents should gain hands-on experience with them when possible.
+- Chapter 3 Design Methodology: the actual development of the project.
+- Chapter 4 Results and Interpretations: results from the testing/evaluation phase with the proponents' interpretations. (For EMC) includes the finalized Game Design Document.
+- Chapter 5 Conclusions and Next Steps: overall assessment with key insights on the topic and on technology's uses/potentials/limitations; ends with next steps based on user and panel feedback.
+- Bibliography: alphabetical listing of sources/works reviewed.
+- Appendices: supporting documents for the project.
+
+Reference: Lavina, C.G., Manabo, R.D., Hernandez, G.D.C., Hablanida, F.L., Lacorte, A.M., & Gaza-Ebron, J. (2022). Outcomes-based practical guide to thesis and capstone project writing in computing. Mindshapers Co., Inc."""
+
+THESIS_TEMPLATE_COMPACT = """TECH THESIS/CAPSTONE TEMPLATE 2025–2026 (expected structure):
+Thesis/Capstone 1:
+- Ch.1 Introduction: A. Project Rationale [a. Research Context (i. Review of Related Literature, ii. Research Methods and Findings); b. Statement of the Problem]; B. Project Narrative [a. Description & Objectives; b. Scope & Limitations; c. SWOT Analysis; d. Project Testing & Evaluation (i. Respondents ~30 min; ii. Instrument; iii. Analysis thematic/statistical)].
+- Ch.2 Review of Related Works.
+- Ch.3 Design Methodology: A. Conceptual Framework; B. Project Timeline; C. System Scope / (EMC) High Concept GDD; D. Requirements Specification / (EMC) Prototype Overview.
+- Bibliography; Appendices.
+Thesis/Capstone 2:
+- Ch.3 Design Methodology (cont.); Ch.4 Results and Interpretations; Ch.5 Conclusions and Next Steps; updated Bibliography & Appendices.
+Key rule: objectives must align with the Statement of the Problem and be the basis for testing/evaluation."""
+
+
 def normalize_questioning_mode(mode: str) -> str:
     normalized = (mode or "balanced").strip().lower()
     if normalized not in QUESTIONING_INSTRUCTIONS:
@@ -150,9 +220,25 @@ def get_questioning_prompt(mode: str, context: str) -> str:
     return QUESTIONING_INSTRUCTIONS[normalized][context]
 
 
+def get_template_block(provider: str) -> str:
+    limits = get_limits(provider)
+    template = THESIS_TEMPLATE_COMPACT if limits.use_compact_prompt else THESIS_TEMPLATE
+    return (
+        "\n\nINSTITUTIONAL THESIS/CAPSTONE TEMPLATE (for reference):\n"
+        "Use this official 2025–2026 template as the expected structure and format when reviewing a "
+        "Thesis, Capstone, or Feasibility Study. Check whether the paper follows these chapters and "
+        "sections, and clearly flag any missing, incomplete, or out-of-order parts. For other paper "
+        "types, apply it only where relevant.\n"
+        "--- BEGIN TEMPLATE ---\n"
+        f"{template}\n"
+        "--- END TEMPLATE ---"
+    )
+
+
 def get_base_system_prompt(provider: str) -> str:
     limits = get_limits(provider)
-    return COMPACT_SYSTEM_PROMPT if limits.use_compact_prompt else SYSTEM_PROMPT
+    base = COMPACT_SYSTEM_PROMPT if limits.use_compact_prompt else SYSTEM_PROMPT
+    return base + get_template_block(provider)
 
 
 def get_review_system_prompt(

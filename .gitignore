@@ -4,3 +4,10 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+
+# Student/uploaded documents — keep private, never commit by accident.
+# (The official thesis template below is intentionally allowed.)
+*.pdf
+*.doc
+*.docx
+!Tech Thesis Template 2025-2026.pdf
